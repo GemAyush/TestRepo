@@ -8,6 +8,7 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.cucumber.java.hu.Ha;
+import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -22,11 +23,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 
+import static utils.Actions.isClickable;
+
 public class ParallelTest {
     public WebDriver driver;
     public  String fundTitle;
     public HashMap<String, Boolean> fundDocumentName = new HashMap<>();
     public static HashMap<String, HashMap<String, Boolean>> funds = new HashMap<>();
+    SoftAssert softAssert = new SoftAssert();
     @Before
     public void driverSetUp(){
         driver = DriverClass.setup();
@@ -40,26 +44,41 @@ public class ParallelTest {
     }
     @When("Click On Document")
     public void clickOnDocument(){
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-        wait.until(ExpectedConditions.elementToBeClickable(Locators.headerDocument));
-        driver.findElement(Locators.headerDocument).click();
+        try{
+            if(isClickable(driver, Locators.headerDocument)){
+                driver.findElement(Locators.headerDocument).click();
+            }
+        }
+        catch (ElementNotInteractableException e){
+            softAssert.assertTrue(false, "Element Not Clickable!");
+        }
     }
     @Then("Open every {string} to see if loading correctly")
     public void openEveryDocumentToSeeIfLoadingCorrectly(String Documents) throws InterruptedException {
-        SoftAssert softAssert = new SoftAssert();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-        wait.until(ExpectedConditions.elementToBeClickable(Locators.seeMoreBtn));
-        Thread.sleep(5000);
-        driver.findElement(Locators.seeMoreBtn).click();
-
+//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+//        wait.until(ExpectedConditions.elementToBeClickable(Locators.seeMoreBtn));
+//        Thread.sleep(5000);
+        try{
+            if(isClickable(driver, Locators.seeMoreBtn)){
+                driver.findElement(Locators.seeMoreBtn).click();
+            }
+        }
+        catch (ElementNotInteractableException e){
+            softAssert.assertTrue(false, "Element Not Clickable!");
+        }
         Thread.sleep(5000);
         String[] documents = Documents.split(",");
 
         for(String document : documents) {
-            WebElement webElement = driver.findElement(Locators.documents(document));
-            wait.until(ExpectedConditions.elementToBeClickable(webElement));
-            webElement.click();
-            String parentWindow = driver.getWindowHandle();
+            try {
+                if (isClickable(driver, Locators.documents(document))) {
+                    driver.findElement(Locators.documents(document)).click();
+                }
+            }
+            catch (ElementNotInteractableException e){
+                fundDocumentName.put(fundTitle, null);
+                softAssert.assertTrue(false, "Element Not Clickable!");
+            }
             Thread.sleep(5000);
             Set<String> windowHandles = driver.getWindowHandles();
             String [] handle = windowHandles.toArray(new String[windowHandles.size()]);
@@ -74,11 +93,9 @@ public class ParallelTest {
                     DocumentVerify.excelDocumentVerify(document, fundDocumentName);
                 }
             } catch (AssertionError e) {
-                // Log the assertion failure
-                // Perform any necessary error handling
-                // You can choose whether to continue or stop execution
+
             } finally {
-                driver.switchTo().window(parentWindow);
+                driver.switchTo().window(handle[0]);
             }
         }
         softAssert.assertAll();
@@ -94,18 +111,18 @@ public class ParallelTest {
     }
     @AfterAll
     public static void before_or_after_all(){
-        int idx = 1;
+        int idx = 0;
         String details = "";
         String cssStyles = "<style type=\"text/css\">\n" +
                 ".tg  {border-collapse:collapse;border-color:#aabcfe;border-spacing:0;width: 100%;}\n" +
-                ".tg td{background-color:#e8edff;border-color:#aabcfe;border-style:solid;border-width:1px;color:#669;\n" +
+                ".tg td{background-color:#e8edff;border-color:#aabcfe;border-style:solid;border-width:1px;color:#000;\n" +
                 "  font-family:Arial, sans-serif;font-size:14px;overflow:hidden;padding:10px 5px;word-break:normal;}\n" +
-                ".tg th{background-color:#b9c9fe;border-color:#aabcfe;border-style:solid;border-width:1px;color:#039;\n" +
+                ".tg th{background-color:#b9c9fe;border-color:#aabcfe;border-style:solid;border-width:1px;color:#000;\n" +
                 "  font-family:Arial, sans-serif;font-size:14px;font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}\n" +
                 ".tg .tg-c3ow{border-color:inherit;text-align:center;vertical-align:top}\n" +
                 ".tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}\n" +
-                ".tg .bg-green {background-color: green;} /* New class for green background */\n" +
-                ".tg .bg-red {background-color: red;} /* New class for red background */\n" +
+                ".tg .bg-green {background-color: rgb(15, 255, 80);} /* New class for green background */\n" +
+                ".tg .bg-red {background-color: rgb(255, 49, 49);} /* New class for red background */\n" +
                 "@media screen and (max-width: 767px) {.tg {width: auto !important;}.tg col {width: auto !important;}.tg-wrap {overflow-x: auto;-webkit-overflow-scrolling: touch;}}</style>";
         String header = cssStyles + "<table class=\"tg\">\n" +
                 "<thead>\n" +
@@ -118,16 +135,35 @@ public class ParallelTest {
         String tbody = header + "<tbody>\n";
         for(HashMap.Entry<String, HashMap<String, Boolean>> entry : funds.entrySet()){
             String funcValue = "";
+            boolean flag = false;
             String headline = "  <tr>\n" +
-                            "    <td class=\"tg-0pky\">"+idx+"</td>\n" +
-                            "    <td class=\"tg-c3ow\">"+entry.getKey()+"</td>\n";
+                            "    <td class=\"tg-0pky\" rowspan=\""+ entry.getValue().size() +"\">"+idx+"</td>\n" +
+                            "    <td class=\"tg-c3ow\" rowspan=\""+ entry.getValue().size() +"\">"+entry.getKey()+"</td>\n";
 
             funcValue = funcValue + headline;
             for(Map.Entry<String, Boolean> document : entry.getValue().entrySet()) {
-                String status = document.getValue() ? " bg-green" : " bg-red";
-                funcValue = funcValue + "  <td class=\"tg-0pky"+ status +"\">" + document.getKey() + "</td>\n";
+                boolean status = document.getValue();
+                String statusValue = "";
+                if(status){
+                    statusValue = " bg-green";
+                }
+                else if(!status){
+                    statusValue = " bg-red";
+                }
+                else{
+                    statusValue = " bg-yellow";
+                }
+
+                if(flag == false){
+                    funcValue = funcValue + "  <td class=\"tg-0pky"+ statusValue +"\">" + document.getKey() + "</td>\n" + "</tr>\n";
+                    flag = true;
+                }
+                else {
+                    funcValue = funcValue + "<tr>\n" +
+                            "    <td class=\"tg-0pky" + statusValue + "\">" + document.getKey() + "</td>\n" +
+                            "  </tr>";
+                }
             }
-            funcValue = funcValue + "</tr>\n";
             idx++;
             details = details + funcValue;
         }

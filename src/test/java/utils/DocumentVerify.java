@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static utils.Actions.isElementVisible;
+
 public class DocumentVerify {
 
     static boolean flag;
@@ -17,9 +19,8 @@ public class DocumentVerify {
     public static void pdfDocumentVerify(WebDriver driver, String documentTitle, HashMap<String, Boolean> fundDocumentName) throws InterruptedException{
         flag = false;
 
-        Thread.sleep(5000);
         try{
-            if(driver.findElement(Locators.documents(documentTitle)).isDisplayed()){
+            if(isElementVisible(driver, Locators.documents(documentTitle))){
                 fundDocumentName.put(documentTitle, true);
                 flag = true;
             }
@@ -47,6 +48,7 @@ public class DocumentVerify {
         Arrays.sort(dir_contents, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
         if (dir_contents[0].getName().contains(".csv") || dir_contents[0].getName().contains(".xls")) {
             fundDocumentName.put(documentTitle, true);
+            dir_contents[0].delete();
         }
         Assert.assertTrue(fundDocumentName.containsKey(documentTitle), "Excel document verification failed for: " + documentTitle);
         if(!fundDocumentName.containsKey(documentTitle)){
