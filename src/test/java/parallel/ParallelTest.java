@@ -27,11 +27,11 @@ import static utils.Actions.isClickable;
 
 public class ParallelTest {
     public WebDriver driver;
-    public  String fundTitle;
+    public List<String> fundTitle = new ArrayList<>();
 
     List<String> urlStatus = new ArrayList<>();
     public HashMap<String, List<String>> fundDocumentName = new HashMap<>();
-    public static HashMap<String, HashMap<String, List<String>>> funds = new HashMap<>();
+    public static HashMap<List<String>, HashMap<String, List<String>>> funds = new HashMap<>();
     SoftAssert softAssert = new SoftAssert();
     @Before
     public void driverSetUp(){
@@ -42,7 +42,8 @@ public class ParallelTest {
     {
         driver.get(url);
         driver.manage().window().maximize();
-        fundTitle = driver.getTitle();
+        fundTitle.add(0, driver.getTitle());
+        fundTitle.add(1, url);
     }
     @When("Click On Document")
     public void clickOnDocument(){
@@ -76,7 +77,7 @@ public class ParallelTest {
                 }
             }
             catch (ElementNotInteractableException e){
-                fundDocumentName.put(fundTitle, null);
+                fundDocumentName.put(document, null);
                 softAssert.assertTrue(false, "Element Not Clickable!");
             }
             urlStatus.add(0, driver.findElement(Locators.documents(document)).getAttribute("href"));
@@ -136,12 +137,12 @@ public class ParallelTest {
                 "  </tr>\n" +
                 "</thead>\n";
         String tbody = header + "<tbody>\n";
-        for(HashMap.Entry<String, HashMap<String, List<String>>> entry : funds.entrySet()){
+        for(HashMap.Entry<List<String>, HashMap<String, List<String>>> entry : funds.entrySet()){
             String funcValue = "";
             boolean flag = false;
             String headline = "  <tr>\n" +
                             "    <td class=\"tg-0pky\" rowspan=\""+ entry.getValue().size() +"\">"+idx+"</td>\n" +
-                            "    <td class=\"tg-c3ow\" rowspan=\""+ entry.getValue().size() +"\">"+entry.getKey()+"</td>\n";
+                            "    <td class=\"tg-c3ow\" rowspan=\""+ entry.getValue().size() +"\"><a href=\""+entry.getKey().get(1)+"\">"+entry.getKey().get(0)+"</a></td>\n";
 
             funcValue = funcValue + headline;
             for(Map.Entry<String, List<String>> document : entry.getValue().entrySet()) {
