@@ -28,8 +28,10 @@ import static utils.Actions.isClickable;
 public class ParallelTest {
     public WebDriver driver;
     public  String fundTitle;
-    public HashMap<String, Boolean> fundDocumentName = new HashMap<>();
-    public static HashMap<String, HashMap<String, Boolean>> funds = new HashMap<>();
+
+    List<String> urlStatus = new ArrayList<>();
+    public HashMap<String, List<String>> fundDocumentName = new HashMap<>();
+    public static HashMap<String, HashMap<String, List<String>>> funds = new HashMap<>();
     SoftAssert softAssert = new SoftAssert();
     @Before
     public void driverSetUp(){
@@ -55,9 +57,6 @@ public class ParallelTest {
     }
     @Then("Open every {string} to see if loading correctly")
     public void openEveryDocumentToSeeIfLoadingCorrectly(String Documents) throws InterruptedException {
-//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
-//        wait.until(ExpectedConditions.elementToBeClickable(Locators.seeMoreBtn));
-//        Thread.sleep(5000);
         try{
             if(isClickable(driver, Locators.seeMoreBtn)){
                 driver.findElement(Locators.seeMoreBtn).click();
@@ -70,6 +69,7 @@ public class ParallelTest {
         String[] documents = Documents.split(",");
 
         for(String document : documents) {
+            List<String> urlStatus = new ArrayList<>();
             try {
                 if (isClickable(driver, Locators.documents(document))) {
                     driver.findElement(Locators.documents(document)).click();
@@ -79,10 +79,13 @@ public class ParallelTest {
                 fundDocumentName.put(fundTitle, null);
                 softAssert.assertTrue(false, "Element Not Clickable!");
             }
+            urlStatus.add(0, driver.findElement(Locators.documents(document)).getAttribute("href"));
+            System.out.println(driver.findElement(Locators.documents(document)).getAttribute("href"));
+            urlStatus.add(1, "null");
+            fundDocumentName.put(document, urlStatus);
             Thread.sleep(5000);
             Set<String> windowHandles = driver.getWindowHandles();
             String [] handle = windowHandles.toArray(new String[windowHandles.size()]);
-
             try {
                 if(windowHandles.size() > 1) {
                     driver.switchTo().window(handle[1]);
@@ -133,7 +136,7 @@ public class ParallelTest {
                 "  </tr>\n" +
                 "</thead>\n";
         String tbody = header + "<tbody>\n";
-        for(HashMap.Entry<String, HashMap<String, Boolean>> entry : funds.entrySet()){
+        for(HashMap.Entry<String, HashMap<String, List<String>>> entry : funds.entrySet()){
             String funcValue = "";
             boolean flag = false;
             String headline = "  <tr>\n" +
@@ -141,8 +144,8 @@ public class ParallelTest {
                             "    <td class=\"tg-c3ow\" rowspan=\""+ entry.getValue().size() +"\">"+entry.getKey()+"</td>\n";
 
             funcValue = funcValue + headline;
-            for(Map.Entry<String, Boolean> document : entry.getValue().entrySet()) {
-                boolean status = document.getValue();
+            for(Map.Entry<String, List<String>> document : entry.getValue().entrySet()) {
+                boolean status = Boolean.parseBoolean(document.getValue().get(1));
                 String statusValue = "";
                 if(status){
                     statusValue = " bg-green";
@@ -155,12 +158,12 @@ public class ParallelTest {
                 }
 
                 if(flag == false){
-                    funcValue = funcValue + "  <td class=\"tg-0pky"+ statusValue +"\">" + document.getKey() + "</td>\n" + "</tr>\n";
+                    funcValue = funcValue + "  <td class=\"tg-0pky"+ statusValue +"\"><a href=\""+document.getValue().get(0)+"\">" + document.getKey() + "</a></td>\n" + "</tr>\n";
                     flag = true;
                 }
                 else {
                     funcValue = funcValue + "<tr>\n" +
-                            "    <td class=\"tg-0pky" + statusValue + "\">" + document.getKey() + "</td>\n" +
+                            "    <td class=\"tg-0pky" + statusValue + "\"><a href=\""+document.getValue().get(0)+"\">" + document.getKey() + "</a></td>\n" +
                             "  </tr>";
                 }
             }

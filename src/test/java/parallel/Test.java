@@ -3,6 +3,9 @@ package parallel;
 import org.testng.Assert;
 import org.testng.asserts.SoftAssert;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public class Test {
 
@@ -10,20 +13,12 @@ public class Test {
     public void testMethod(){
         SoftAssert softAssert = new SoftAssert();
 
-        System.out.println("Ayush");
-//        Assert.assertEquals(2, 5, "Not Matching Failing!");
+//
+        List<String> lst = new ArrayList<>();
+        lst.add(0, "ayush");
+        lst.add(1, "saxena");
+        lst.set(0, "Alok");
 
-        softAssert.assertEquals(2, 5, "Not Matching Failing!");
-        softAssert.assertEquals("Ayush", "Saxena", "Not Equal Failing!");
-        softAssert.assertEquals(false, false, "Good it's Working!");
-        try{
-            softAssert.assertAll();
-        }
-        catch (Exception e){
-//            e.printStackTrace();
-//            System.out.println("Assertion Error");
-        }
-
-        System.out.println("Saxena");
+        System.out.println(lst);
     }
 }
